@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"time"
+	"net/http"
 
 	"github.com/go-sql-driver/mysql"
 
@@ -64,11 +65,14 @@ func main() {
 
 	e.POST("/signup", h.SignUpHandler) 
 	e.POST("/login", h.LoginHandler) 
+	e.GET("/ping", func (c echo.Context) error { return c.String(http.StatusOK,"pong")}) 
 
 	withAuth := e.Group("") 
 	withAuth.Use(handler.UserAuthMiddleware) 
 	withAuth.GET("/me", handler.GetMeHandler)
-	withAuth.GET("/cities/:cityName", h.GetCityInfoHandler) 
+	withAuth.GET("/cities/:cityName", h.GetCityInfoHandler)
+	withAuth.GET("/countriesName", h.GetCountriesNameHandler)
+	withAuth.GET("/citiesByCountry/:countryName", h.GetCitiesByCountryHandler)
 	withAuth.POST("/cities", h.PostCityHandler) 
 
 	err = e.Start(":8080")

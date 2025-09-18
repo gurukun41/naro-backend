@@ -191,3 +191,48 @@ func GetMeHandler(c echo.Context) error {
 		Username: c.Get("userName").(string), 
 	}) 
 } 
+
+type CountryName struct {
+    Name string `json:"name" db:"Name"`
+}
+
+func (h *Handler) GetCountriesNameHandler(c echo.Context) error {
+    var countries []CountryName
+    err := h.db.Select(&countries, "SELECT Name FROM country")
+    if err != nil {
+        log.Printf("failed to get countries name: %s\n", err)
+        return c.NoContent(http.StatusInternalServerError)
+    }
+    return c.JSON(http.StatusOK, countries)
+}
+
+// 都市名だけを返すための構造体
+type CityName struct {
+    Name string `json:"name" db:"Name"`
+}
+
+// 国名を指定して、その国の都市名一覧を返すハンドラ
+func (h *Handler) GetCitiesByCountryHandler(c echo.Context) error {
+    countryName := c.Param("countryName")
+
+    // CountryテーブルからCountryCodeを取得
+    var countryCode string
+    err := h.db.Get(&countryCode, "SELECT Code FROM country WHERE Name = ?", countryName)
+    if err != nil {
+        if errors.Is(err, sql.ErrNoRows) {
+            return c.NoContent(http.StatusNotFound)
+        }
+        log.Printf("failed to get country code: %s\n", err)
+        return c.NoContent(http.StatusInternalServerError)
+    }
+
+    // CityテーブルからCountryCodeで都市名一覧を取得
+    var cities []CityName
+    err = h.db.Select(&cities, "SELECT Name FROM city WHERE CountryCode = ?", countryCode)
+    if err != nil {
+        log.Printf("failed to get cities: %s\n", err)
+        return c.NoContent(http.StatusInternalServerError)
+    }
+
+    return c.JSON(http.StatusOK, cities)
+}
